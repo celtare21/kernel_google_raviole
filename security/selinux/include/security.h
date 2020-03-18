@@ -124,6 +124,7 @@ static inline void selinux_mark_initialized(struct selinux_state *state)
 	smp_store_release(&state->initialized, true);
 }
 
+#ifndef CONFIG_ASSISTED_SUPERUSER
 #ifdef CONFIG_SECURITY_SELINUX_DEVELOP
 static inline bool enforcing_enabled(struct selinux_state *state)
 {
@@ -138,6 +139,16 @@ static inline void enforcing_set(struct selinux_state *state, bool value)
 static inline bool enforcing_enabled(struct selinux_state *state)
 {
 	return true;
+}
+
+static inline void enforcing_set(struct selinux_state *state, bool value)
+{
+}
+#endif
+#else
+static inline bool enforcing_enabled(struct selinux_state *state)
+{
+        return false;
 }
 
 static inline void enforcing_set(struct selinux_state *state, bool value)

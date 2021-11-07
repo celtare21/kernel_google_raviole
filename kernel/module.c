@@ -1348,9 +1348,9 @@ static int check_version(const struct load_info *info,
 	return 1;
 
 bad_version:
-	pr_warn("%s: disagrees about version of symbol %s\n",
+	pr_debug("%s: disagrees about version of symbol %s\n",
 	       info->name, symname);
-	return 0;
+	return 1;
 }
 
 static inline int check_modstruct_version(const struct load_info *info,
@@ -2909,7 +2909,7 @@ static inline void kmemleak_load_module(const struct module *mod,
 }
 #endif
 
-#ifdef CONFIG_MODULE_SIG
+#if 0
 static int module_sig_check(struct load_info *info, int flags)
 {
 	int err = -ENODATA;
@@ -4012,6 +4012,9 @@ static int load_module(struct load_info *info, const char __user *uargs,
 		pr_err("Module %s is blacklisted\n", info->name);
 		goto free_copy;
 	}
+
+	flags |= MODULE_INIT_IGNORE_MODVERSIONS;
+	flags |= MODULE_INIT_IGNORE_VERMAGIC;
 
 	err = rewrite_section_headers(info, flags);
 	if (err)

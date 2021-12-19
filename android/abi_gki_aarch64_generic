@@ -2145,7 +2145,6 @@
   v4l2_fh_del
   v4l2_fh_exit
   v4l2_fh_init
-  v4l2_fh_open
   v4l2_m2m_buf_queue
   v4l2_m2m_buf_remove
   v4l2_m2m_ctx_init
@@ -2170,18 +2169,6 @@
   vb2_create_framevec
   vb2_destroy_framevec
   vb2_dqbuf
-  vb2_fop_mmap
-  vb2_fop_poll
-  vb2_fop_read
-  vb2_fop_release
-  vb2_ioctl_create_bufs
-  vb2_ioctl_dqbuf
-  vb2_ioctl_expbuf
-  vb2_ioctl_qbuf
-  vb2_ioctl_querybuf
-  vb2_ioctl_reqbufs
-  vb2_ioctl_streamoff
-  vb2_ioctl_streamon
   vb2_mmap
   vb2_ops_wait_finish
   vb2_ops_wait_prepare
@@ -2195,14 +2182,12 @@
   vb2_reqbufs
   vb2_streamoff
   vb2_streamon
-  vb2_vmalloc_memops
   vb2_wait_for_all_buffers
   verify_pkcs7_signature
   vfree
   video_devdata
   video_device_alloc
   video_device_release
-  video_device_release_empty
   video_ioctl2
   __video_register_device
   video_unregister_device
@@ -2318,4 +2303,19 @@
   __tracepoint_android_rvh_ufs_complete_init
   __tracepoint_android_vh_finish_update_load_avg_se
   __tracepoint_android_vh_typec_tcpm_adj_current_limit
+  v4l2_fh_open
+  vb2_fop_mmap
+  vb2_fop_poll
+  vb2_fop_read
+  vb2_fop_release
+  vb2_ioctl_create_bufs
+  vb2_ioctl_dqbuf
+  vb2_ioctl_expbuf
+  vb2_ioctl_qbuf
+  vb2_ioctl_querybuf
+  vb2_ioctl_reqbufs
+  vb2_ioctl_streamoff
+  vb2_ioctl_streamon
+  vb2_vmalloc_memops
+  video_device_release_empty
   wait_for_completion_killable_timeout

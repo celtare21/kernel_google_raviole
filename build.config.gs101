@@ -56,7 +56,7 @@ android/abi_gki_aarch64_xiaomi
 "
 TRIM_NONLISTED_KMI=${TRIM_NONLISTED_KMI:-1}
 KMI_SYMBOL_LIST_ADD_ONLY=1
-KMI_SYMBOL_LIST_STRICT_MODE=${KMI_SYMBOL_LIST_STRICT_MODE:-1}
+KMI_SYMBOL_LIST_STRICT_MODE=0
 KMI_SYMBOL_LIST_MODULE_GROUPING=0
 
 BUILD_INITRAMFS=1
@@ -68,7 +68,7 @@ VENDOR_DLKM_PROPS=${KERNEL_DIR}/vendor_dlkm.props.slider
 GKI_RAMDISK_PREBUILT_BINARY=${ROOT_DIR}/prebuilts/boot-artifacts/ramdisks/ramdisk-aosp_arm64.img
 VENDOR_RAMDISK_BINARY=${ROOT_DIR}/prebuilts/boot-artifacts/ramdisks/vendor_ramdisk-raven.img
 KERNEL_VENDOR_CMDLINE="earlycon=exynos4210,0x10A00000 console=ttySAC0,115200 androidboot.console=ttySAC0"
-KERNEL_VENDOR_CMDLINE+=" printk.devkmsg=on cma_sysfs.experimental=Y stack_depot_disable=off page_pinner=on"
+KERNEL_VENDOR_CMDLINE+=" printk.devkmsg=on cma_sysfs.experimental=Y stack_depot_disable=off page_pinner=on cgroup_disable=pressure"
 KERNEL_VENDOR_CMDLINE+=" at24.write_timeout=100"
 KERNEL_VENDOR_CMDLINE+=" log_buf_len=1024K"
 VENDOR_BOOTCONFIG="androidboot.boot_devices=14700000.ufs"

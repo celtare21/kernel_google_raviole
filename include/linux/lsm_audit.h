@@ -121,5 +121,4 @@ int ipv6_skb_to_auditdata(struct sk_buff *skb,
 void common_lsm_audit(struct common_audit_data *a,
 	void (*pre_audit)(struct audit_buffer *, void *),
 	void (*post_audit)(struct audit_buffer *, void *));
-
 #endif

@@ -773,8 +773,6 @@
   gen_pool_size
   get_cpu_device
   get_cpu_idle_time
-  get_cpu_idle_time_us
-  get_cpu_iowait_time_us
   get_device
   __get_free_pages
   get_governor_parent_kobj
@@ -982,7 +980,6 @@
   jiffies_to_usecs
   kasan_flag_enabled
   kasprintf
-  kernel_cpustat
   kernel_kobj
   kernel_param_lock
   kernel_param_unlock
@@ -1186,7 +1183,6 @@
   noop_llseek
   nr_cpu_ids
   nr_irqs
-  nsec_to_clock_t
   ns_to_timespec64
   __num_online_cpus
   nvmem_device_put
@@ -1346,7 +1342,6 @@
   pktgen_xfrm_outer_mode_output
   platform_bus_type
   platform_device_add
-  platform_device_add_data
   platform_device_add_properties
   platform_device_add_resources
   platform_device_alloc
@@ -1775,7 +1770,6 @@
   static_key_disable
   static_key_slow_dec
   static_key_slow_inc
-  stop_machine
   strcasecmp
   strcat
   strchr
@@ -1870,7 +1864,6 @@
   thermal_zone_device_update
   thermal_zone_of_sensor_register
   thermal_zone_of_sensor_unregister
-  thread_group_cputime_adjusted
   tick_nohz_get_idle_calls_cpu
   time64_to_tm
   topology_set_thermal_pressure
@@ -2271,6 +2264,8 @@
   drm_atomic_helper_disable_all
   drm_atomic_set_mode_for_crtc
   drm_mode_copy
+  get_cpu_idle_time_us
+  get_cpu_iowait_time_us
   get_user_pages_remote
   hid_add_device
   hid_allocate_device
@@ -2278,11 +2273,14 @@
   hid_destroy_device
   hid_input_report
   hid_parse_report
+  kernel_cpustat
   lru_cache_disable
   lru_cache_enable
   mktime64
   napi_gro_flush
+  nsec_to_clock_t
   param_ops_short
+  platform_device_add_data
   regmap_irq_get_virq
   sched_set_fifo
   set_normalized_timespec64
@@ -2294,8 +2292,10 @@
   snd_soc_info_volsw_sx
   snd_soc_lookup_component
   snd_soc_put_volsw_sx
+  stop_machine
   strnchr
   system_long_wq
+  thread_group_cputime_adjusted
   __trace_bputs
   __traceiter_android_rvh_ufs_complete_init
   __traceiter_android_vh_finish_update_load_avg_se

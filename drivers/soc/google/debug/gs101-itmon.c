@@ -107,14 +107,10 @@
 
 #define log_dev_err(dev, fmt, ...)	\
 do {									\
-	dev_printk_emit(LOGLEVEL_ERR, dev, fmt, ##__VA_ARGS__);		\
-	dbg_snapshot_itmon_backup_log(fmt, ##__VA_ARGS__);		\
 } while (0)
 
 #define log_dev_info(dev, fmt, ...)	\
 do {									\
-	dev_printk_emit(LOGLEVEL_INFO, dev, fmt, ##__VA_ARGS__);	\
-	dbg_snapshot_itmon_backup_log(fmt, ##__VA_ARGS__);		\
 } while (0)
 
 enum err_type {
@@ -847,30 +843,6 @@ static struct itmon_nodegroup nodegroup[] = {
 	{"BUS_PERI3", 0x20663000, 0, vec_p3, ARRAY_SIZE(vec_p3), PERI}, /* 158 */
 };
 
-const static char *itmon_pathtype[] = {
-	"DATA Path transaction",
-	"Configuration(SFR) Path transaction",
-};
-
-/* Error Code Description */
-const static char *itmon_errcode[] = {
-	"Error Detect by the Slave(SLVERR)",
-	"Decode error(DECERR)",
-	"Unsupported transaction error",
-	"Power Down access error",
-	"Unsupported transaction",
-	"Unsupported transaction",
-	"Timeout error - response timeout in timeout value",
-	"Invalid errorcode",
-};
-
-const static char *itmon_node_string[] = {
-	"M_NODE",
-	"TAXI_S_NODE",
-	"TAXI_M_NODE",
-	"S_NODE",
-};
-
 const static char *itmon_cpu_node_string[] = {
 	"M_CPU",
 	"SCI_IRPM",
@@ -1316,13 +1288,6 @@ static void itmon_report_timeout(struct itmon_dev *itmon,
 		    "-----------------------------------------------------------\n");
 }
 
-static unsigned int power(unsigned int param, unsigned int num)
-{
-	if (num == 0)
-		return 1;
-	return param * (power(param, num - 1));
-}
-
 static void itmon_report_prot_chk_rawdata(struct itmon_dev *itmon,
 				     struct itmon_nodeinfo *node)
 {
@@ -1356,8 +1321,6 @@ static void itmon_report_rawdata(struct itmon_dev *itmon,
 				 struct itmon_nodeinfo *node,
 				 unsigned int trans_type)
 {
-	struct itmon_tracedata *data = &node->tracedata;
-
 	/* Output Raw register information */
 	log_dev_err(itmon->dev,
 		    "Raw Register Information ----------------------------------\n"
@@ -1425,8 +1388,6 @@ static void itmon_report_pathinfo(struct itmon_dev *itmon,
 				  unsigned int trans_type)
 
 {
-	struct itmon_tracedata *data = &node->tracedata;
-
 	if (!info->path_dirty) {
 		log_dev_err(itmon->dev,
 			    "\n-----------------------------------------------------------\n"
@@ -2100,7 +2061,6 @@ static int itmon_logging_panic_handler(struct notifier_block *nb,
 {
 	struct itmon_panic_block *itmon_panic = (struct itmon_panic_block *)nb;
 	struct itmon_dev *itmon = itmon_panic->pdev;
-	struct itmon_platdata *pdata = itmon->pdata;
 	int ret;
 
 	if (!IS_ERR_OR_NULL(itmon)) {

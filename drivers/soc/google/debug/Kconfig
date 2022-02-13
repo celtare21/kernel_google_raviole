@@ -100,7 +100,6 @@ config EXYNOS_CORESIGHT
 
 config EXYNOS_ECC_HANDLER
 	tristate "Exynos support ECC handler"
-	depends on DEBUG_SNAPSHOT
 	default n
 	help
 	  If ECC happened in cache of CPU, interrupt occurs to cpu.

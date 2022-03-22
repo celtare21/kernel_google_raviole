@@ -135,7 +135,12 @@ int copy_string_kernel(const char *arg, struct linux_binprm *bprm);
 extern void set_binfmt(struct linux_binfmt *new);
 extern ssize_t read_code(struct file *, unsigned long, loff_t, size_t);
 
-int kernel_execve(const char *filename,
-		  const char *const *argv, const char *const *envp);
+extern int do_execve(struct filename *,
+		     const char __user * const __user *,
+		     const char __user * const __user *);
+extern int do_execveat(int, struct filename *,
+		       const char __user * const __user *,
+		       const char __user * const __user *,
+		       int);
 
 #endif /* _LINUX_BINFMTS_H */

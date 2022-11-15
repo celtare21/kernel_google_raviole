@@ -20,6 +20,14 @@
 
 /*#define CONFIG_WEEKDAY_ALARM_ENABLE*/
 
+#undef pr_info
+#undef pr_debug
+#define pr_info(...) do { } while (0)
+#define pr_debug(...) do { } while (0)
+
+#undef dev_info
+#define dev_info(...) do { } while (0)
+
 static void s2m_data_to_tm(u8 *data, struct rtc_time *tm)
 {
 	// tm->tm_msec = (data[RTC_MSEC] & 0x0f) + (data[RTC_MSEC] & 0xf0) * 10;

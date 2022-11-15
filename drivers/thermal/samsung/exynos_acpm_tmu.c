@@ -19,6 +19,11 @@
 #include <trace/events/power.h>
 #include "exynos_acpm_tmu.h"
 
+#undef pr_info
+#undef pr_debug
+#define pr_info(...) do { } while (0)
+#define pr_debug(...) do { } while (0)
+
 static unsigned int acpm_tmu_ch_num, acpm_tmu_size;
 
 static bool acpm_tmu_test_mode;
@@ -36,7 +41,7 @@ void exynos_acpm_tmu_set_test_mode(bool mode)
 
 void exynos_acpm_tmu_enable_log(bool mode)
 {
-	acpm_tmu_log = mode;
+	acpm_tmu_log = 0;
 }
 
 bool exynos_acpm_tmu_is_log_enabled(void)

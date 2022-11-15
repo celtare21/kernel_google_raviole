@@ -25,6 +25,14 @@
 #include <linux/exynos_otp.h>
 #endif
 
+#undef pr_info
+#undef pr_debug
+#define pr_info(...) do { } while (0)
+#define pr_debug(...) do { } while (0)
+
+#undef dev_info
+#define dev_info(...) do { } while (0)
+
 /* avoid checking rx elecidle when access DBI */
 void exynos_pcie_rc_phy_check_rx_elecidle(void *phy_pcs_base_regs, int val, int ch_num)
 {

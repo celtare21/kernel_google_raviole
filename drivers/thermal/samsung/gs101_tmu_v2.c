@@ -38,6 +38,14 @@
 #endif
 #include <soc/google/exynos-cpuhp.h>
 
+#undef pr_info
+#undef pr_debug
+#define pr_info(...) do { } while (0)
+#define pr_debug(...) do { } while (0)
+
+#undef dev_info
+#define dev_info(...) do { } while (0)
+
 #include <trace/events/power.h>
 
 #define CREATE_TRACE_POINTS
@@ -843,9 +851,6 @@ static void gs101_tmu_work(struct kthread_work *work)
 	mutex_lock(&data->lock);
 
 	exynos_acpm_tmu_clear_tz_irq(data->id);
-
-	dev_dbg_ratelimited(&tz->device, "IRQ handled: tz:%s, temp:%d\n",
-			    tz->type, tz->temperature);
 
 	mutex_unlock(&data->lock);
 

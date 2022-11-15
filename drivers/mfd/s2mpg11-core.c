@@ -429,10 +429,6 @@ static int s2mpg11_resume(struct device *dev)
 	struct i2c_client *i2c = container_of(dev, struct i2c_client, dev);
 	struct s2mpg11_dev *s2mpg11 = i2c_get_clientdata(i2c);
 
-#if !IS_ENABLED(CONFIG_SAMSUNG_PRODUCT_SHIP)
-	pr_info("%s:%s\n", S2MPG11_MFD_DEV_NAME, __func__);
-#endif /* CONFIG_SAMSUNG_PRODUCT_SHIP */
-
 	enable_irq(s2mpg11->irq);
 
 	if (device_may_wakeup(dev))

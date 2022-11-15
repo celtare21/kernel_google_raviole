@@ -25,6 +25,13 @@
 
 #include <trace/hooks/power.h>
 
+#undef pr_info
+#undef pr_debug
+#undef pr_cont
+#define pr_info(...) do { } while (0)
+#define pr_debug(...) do { } while (0)
+#define pr_cont(...) do { } while (0)
+
 /*
  * Timeout for stopping processes
  */

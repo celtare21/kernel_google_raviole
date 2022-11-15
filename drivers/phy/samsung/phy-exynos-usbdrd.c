@@ -44,6 +44,16 @@
 //#include <soc/samsung/exynos-cpupm.h>
 #include <soc/google/exynos-el3_mon.h>
 
+#undef pr_info
+#undef pr_debug
+#define pr_info(...) do { } while (0)
+#define pr_debug(...) do { } while (0)
+
+#undef dev_info
+#define dev_info(...) do { } while (0)
+#undef dev_dbg
+#define dev_dbg(...) do { } while (0)
+
 static void __iomem *usbdp_combo_phy_reg;
 void __iomem *phycon_base_addr;
 EXPORT_SYMBOL_GPL(phycon_base_addr);

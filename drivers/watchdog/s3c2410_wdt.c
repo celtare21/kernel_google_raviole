@@ -44,6 +44,16 @@
 #include <linux/pid.h>
 #include <linux/sched/task.h>
 
+#undef pr_info
+#undef pr_debug
+#define pr_info(...) do { } while (0)
+#define pr_debug(...) do { } while (0)
+
+#undef dev_info
+#define dev_info(...) do { } while (0)
+#undef dev_dbg
+#define dev_dbg(...) do { } while (0)
+
 #define S3C2410_WTCON		0x00
 #define S3C2410_WTDAT		0x04
 #define S3C2410_WTCNT		0x08

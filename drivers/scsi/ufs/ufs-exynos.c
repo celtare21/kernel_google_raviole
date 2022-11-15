@@ -27,10 +27,16 @@
 #include <soc/google/exynos-pmu-if.h>
 #include <soc/google/exynos-cpupm.h>
 
+#undef pr_info
+#undef pr_debug
+#define pr_info(...) do { } while (0)
+#define pr_debug(...) do { } while (0)
+
+#undef dev_info
+#define dev_info(...) do { } while (0)
+
 #define IS_C_STATE_ON(h) ((h)->c_state == C_ON)
-#define PRINT_STATES(h)						\
-	dev_err((h)->dev, "%s: prev h_state %d, cur c_state %d\n",	\
-				__func__, (h)->h_state, (h)->c_state)
+#define PRINT_STATES(h) do { } while (0)
 
 /* phy context retention control */
 #define UNIP_PA_DBG_OPTION_SUITE_1	0x39A8

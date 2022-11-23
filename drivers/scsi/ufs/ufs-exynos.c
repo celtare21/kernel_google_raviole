@@ -49,10 +49,6 @@
 
 static struct exynos_ufs *ufs_host_backup[1];
 static int ufs_host_index;
-static const char *res_token[2] = {
-	"passes",
-	"fails",
-};
 
 enum {
 	UFS_S_TOKEN_FAIL,
@@ -698,11 +694,6 @@ static int exynos_ufs_link_startup_notify(struct ufs_hba *hba,
 		/* cal */
 		ret = ufs_call_cal(ufs, 0, ufs_cal_post_link);
 
-		/* print link start-up result */
-		if (!hba->clk_gating.is_suspended)
-			dev_info(ufs->dev, "UFS link start-up %s\n",
-				 (!ret) ? res_token[0] : res_token[1]);
-
 		ufs->h_state = H_LINK_UP;
 		break;
 	default:
@@ -747,23 +738,6 @@ static int exynos_ufs_pwr_change_notify(struct ufs_hba *hba,
 
 		/* cal */
 		ret = ufs_call_cal(ufs, 0, ufs_cal_post_pmc);
-
-		if (!hba->clk_gating.is_suspended)
-			dev_info(ufs->dev,
-				 "Power mode change(%d): M(%d)G(%d)L(%d)"
-				 "HS-series(%d)\n",
-				 ret, act_pmd->mode, act_pmd->gear,
-				 act_pmd->lane, act_pmd->hs_series);
-		/*
-		 * print gear change result.
-		 * Exynos driver always considers gear change to
-		 * HS-B and fast mode.
-		 */
-		if (ufs->req_pmd_parm.mode == FAST_MODE &&
-		    ufs->req_pmd_parm.hs_series == PA_HS_MODE_B &&
-		    !hba->clk_gating.is_suspended)
-			dev_info(ufs->dev, "HS mode config %s\n",
-				 (!ret) ? res_token[0] : res_token[1]);
 
 		ufs->h_state = H_LINK_BOOST;
 		break;

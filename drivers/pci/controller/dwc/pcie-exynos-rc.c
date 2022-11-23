@@ -288,10 +288,8 @@ static const struct dma_map_ops gs101_pcie_dma_ops = {
 
 static void exynos_pcie_phy_isolation(struct exynos_pcie *exynos_pcie, int val)
 {
-	struct device *dev = exynos_pcie->pci->dev;
 	int ret;
 
-	dev_dbg(dev, "PCIe PHY ISOLATION = %d\n", val);
 	exynos_pcie->phy_control = val;
 	ret = rmw_priv_reg(exynos_pcie->pmu_alive_pa +
 			   exynos_pcie->pmu_offset, PCIE_PHY_CONTROL_MASK, val);
@@ -853,7 +851,6 @@ static int exynos_pcie_rc_phy_clock_enable(struct pcie_port *pp, int enable)
 void exynos_pcie_rc_print_link_history(struct pcie_port *pp)
 {
 	struct dw_pcie *pci = to_dw_pcie_from_pp(pp);
-	struct device *dev = pci->dev;
 	struct exynos_pcie *exynos_pcie = to_exynos_pcie(pci);
 	u32 history;
 	int i;
@@ -861,11 +858,6 @@ void exynos_pcie_rc_print_link_history(struct pcie_port *pp)
 	for (i = 31; i >= 0; i--) {
 		history = exynos_elbi_read(exynos_pcie,
 					   PCIE_HISTORY_REG(i));
-
-		dev_info(dev, "LTSSM: 0x%02x, L1sub: 0x%x, D state: 0x%x\n",
-				LTSSM_STATE(history),
-				L1SUB_STATE(history),
-				PM_DSTATE(history));
 	}
 }
 
@@ -1858,23 +1850,6 @@ EXPORT_SYMBOL_GPL(exynos_pcie_rc_register_dump);
 
 void exynos_pcie_rc_dump_link_down_status(int ch_num)
 {
-	struct exynos_pcie *exynos_pcie = &g_pcie_rc[ch_num];
-	struct dw_pcie *pci = exynos_pcie->pci;
-
-	/* if (exynos_pcie->state == STATE_LINK_UP) { */
-		dev_info(pci->dev, "LTSSM: 0x%08x\n",
-			 exynos_elbi_read(exynos_pcie, PCIE_ELBI_RDLH_LINKUP));
-		dev_info(pci->dev, "LTSSM_H: 0x%08x\n",
-			 exynos_elbi_read(exynos_pcie, PCIE_CXPL_DEBUG_INFO_H));
-		dev_info(pci->dev, "DMA_MONITOR1: 0x%08x\n",
-			 exynos_elbi_read(exynos_pcie, PCIE_DMA_MONITOR1));
-		dev_info(pci->dev, "DMA_MONITOR2: 0x%08x\n",
-			 exynos_elbi_read(exynos_pcie, PCIE_DMA_MONITOR2));
-		dev_info(pci->dev, "DMA_MONITOR3: 0x%08x\n",
-			 exynos_elbi_read(exynos_pcie, PCIE_DMA_MONITOR3));
-	/* } else { */
-		dev_info(pci->dev, "PCIE link state is %d\n", exynos_pcie->state);
-	/* } */
 }
 
 void exynos_pcie_rc_dislink_work(struct work_struct *work)
@@ -1882,7 +1857,6 @@ void exynos_pcie_rc_dislink_work(struct work_struct *work)
 	struct exynos_pcie *exynos_pcie = container_of(work, struct exynos_pcie, dislink_work.work);
 	struct dw_pcie *pci = exynos_pcie->pci;
 	struct pcie_port *pp = &pci->pp;
-	struct device *dev = pci->dev;
 	unsigned long flags;
 
 	if (exynos_pcie->state == STATE_LINK_DOWN)
@@ -1895,9 +1869,7 @@ void exynos_pcie_rc_dislink_work(struct work_struct *work)
 	spin_unlock_irqrestore(&exynos_pcie->conf_lock, flags);
 
 	exynos_pcie->linkdown_cnt++;
-	dev_info(dev, "link down and recovery cnt: %d\n", exynos_pcie->linkdown_cnt);
 	if (exynos_pcie->use_pcieon_sleep) {
-		dev_info(dev, "%s, pcie_is_linkup 0\n", __func__);
 		pcie_is_linkup = 0;
 	}
 
@@ -1910,11 +1882,9 @@ void exynos_pcie_rc_cpl_timeout_work(struct work_struct *work)
 		container_of(work, struct exynos_pcie, cpl_timeout_work.work);
 	struct dw_pcie *pci = exynos_pcie->pci;
 	struct pcie_port *pp = &pci->pp;
-	struct device *dev = pci->dev;
 	u32 afc_code_lane0, afc_code_lane1, cdr_mon_lane0, cdr_mon_lane1;
 	u32 i, val, lane_num = 0, count = 0;
 
-	dev_err(dev, "[%s] +++\n", __func__);
 
 	/* dump phy monitor registers */
 	/* common */
@@ -1956,44 +1926,31 @@ void exynos_pcie_rc_cpl_timeout_work(struct work_struct *work)
 	pr_err("PHY PMA(0x%04x cdr_mon1): 0x%08x\n", 0x17C0, cdr_mon_lane1);
 	cdr_mon_lane1 = (cdr_mon_lane1 >> 4) & 0xf;
 
-	dev_info(pci->dev, "afc_code_lane0 = 0x%x, cdr_mon_lane0 = 0x%x\n",
-		 afc_code_lane0, cdr_mon_lane0);
-	dev_info(pci->dev, "afc_code_lane1 = 0x%x, cdr_mon_lane1 = 0x%x\n",
-		 afc_code_lane1, cdr_mon_lane1);
-
 	/* check lane number */
 	exynos_pcie_rc_rd_own_conf(pp, PCIE_LINK_CTRL_STAT, 4, &lane_num);
 	lane_num = lane_num >> 20;
 	lane_num &= PCIE_CAP_NEGO_LINK_WIDTH_MASK;
-	dev_info(pci->dev, "Current lane_num(0x80) = %d\n", lane_num);
 
 	/* check LTSSM */
-	dev_info(pci->dev, "check LTSSM +++\n");
 	count = 0;
 	while (count < LNKRCVYWAIT_TIMEOUT) {
 		val = exynos_elbi_read(exynos_pcie, PCIE_ELBI_RDLH_LINKUP)
 		      & PCIE_ELBI_LTSSM_STATE_MASK;
 		if (val >= S_L0 && val <= S_L1_IDLE) {
-			dev_info(dev, "LTSSM == 0x%x Link OK\n", val);
 			return;
 		}
 
 		count++;
 		usleep_range(10, 12);
 	}
-	dev_info(pci->dev, "check LTSSM ---, LTSSM: 0x%x\n", val);
-
 	exynos_pcie->state = STATE_LINK_DOWN_TRY;
 	exynos_pcie_rc_dump_link_down_status(exynos_pcie->ch_num);
 	exynos_pcie_rc_register_dump(exynos_pcie->ch_num);
-	dev_info(dev, "printed DUMP STATE after CPL Timeout IRQ\n");
 
 	if (exynos_pcie->use_pcieon_sleep) {
-		dev_info(dev, "[%s] pcie_is_linkup = 0\n", __func__);
 		pcie_is_linkup = 0;
 	}
 
-	dev_info(dev, "[%s] call PCIE_LINKDOWN callback after CPL Timeout\n", __func__);
 	exynos_pcie_notify_callback(pp, EXYNOS_PCIE_EVENT_LINKDOWN);
 }
 
@@ -2128,11 +2085,9 @@ void exynos_pcie_rc_assert_phy_reset(struct pcie_port *pp)
 {
 	struct dw_pcie *pci = to_dw_pcie_from_pp(pp);
 	struct exynos_pcie *exynos_pcie = to_exynos_pcie(pci);
-	struct device *dev = pci->dev;
 	int ret;
 
 	ret = exynos_pcie_rc_phy_clock_enable(pp, PCIE_ENABLE_CLOCK);
-	dev_dbg(dev, "phy clk enable, ret value = %d\n", ret);
 	if (exynos_pcie->phy_ops.phy_config)
 		exynos_pcie->phy_ops.phy_config(exynos_pcie, exynos_pcie->ch_num);
 
@@ -2143,12 +2098,10 @@ void exynos_pcie_rc_assert_phy_reset(struct pcie_port *pp)
 void exynos_pcie_rc_resumed_phydown(struct pcie_port *pp)
 {
 	struct dw_pcie *pci = to_dw_pcie_from_pp(pp);
-	struct device *dev = pci->dev;
 	struct exynos_pcie *exynos_pcie = to_exynos_pcie(pci);
 	int ret;
 
 	ret = exynos_pcie_rc_clock_enable(pp, PCIE_ENABLE_CLOCK);
-	dev_dbg(dev, "pcie clk enable, ret value = %d\n", ret);
 
 	exynos_pcie_rc_enable_interrupts(pp, 0);
 	exynos_pcie_phy_isolation(exynos_pcie, PCIE_PHY_BYPASS);
@@ -2258,7 +2211,6 @@ static irqreturn_t exynos_pcie_rc_irq_handler(int irq, void *arg)
 	u32 val_irq0, val_irq1, val_irq2;
 	struct dw_pcie *pci = to_dw_pcie_from_pp(pp);
 	struct exynos_pcie *exynos_pcie = to_exynos_pcie(pci);
-	struct device *dev = pci->dev;
 
 	/* handle IRQ0 interrupt */
 	val_irq0 = exynos_elbi_read(exynos_pcie, PCIE_IRQ0);
@@ -2314,7 +2266,6 @@ static int exynos_pcie_rc_msi_init(struct pcie_port *pp)
 	u32 val, mask_val;
 	struct dw_pcie *pci = to_dw_pcie_from_pp(pp);
 	struct exynos_pcie *exynos_pcie = to_exynos_pcie(pci);
-	struct device *dev = pci->dev;
 	struct pci_bus *ep_pci_bus;
 #if IS_ENABLED(CONFIG_LINK_DEVICE_PCIE)
 	unsigned long msi_addr_from_dt;
@@ -2323,11 +2274,8 @@ static int exynos_pcie_rc_msi_init(struct pcie_port *pp)
 	 * The following code is added to avoid duplicated allocation.
 	 */
 	if (!exynos_pcie->probe_ok) {
-		dev_dbg(dev, "%s: allocate MSI data\n", __func__);
 		ep_pci_bus = pci_find_bus(exynos_pcie->pci_dev->bus->domain_nr, 1);
 		exynos_pcie_rc_rd_other_conf(pp, ep_pci_bus, 0, MSI_CONTROL, 4, &val);
-		dev_dbg(dev, "%s: EP support %d-bit MSI address (0x%x)\n",
-			__func__, (val & MSI_64CAP_MASK) ? 64 : 32, val);
 
 		if (exynos_pcie->ep_device_type == EP_SAMSUNG_MODEM) {
 #if IS_ENABLED(CONFIG_LINK_DEVICE_PCIE)
@@ -2335,23 +2283,14 @@ static int exynos_pcie_rc_msi_init(struct pcie_port *pp)
 			msi_addr_from_dt = shm_get_msi_base();
 
 			if (msi_addr_from_dt) {
-				dev_dbg(dev, "MSI target addr. from DT: %#lx\n", msi_addr_from_dt);
 				pp->msi_data = msi_addr_from_dt;
 				goto program_msi_data;
 			} else {
-				dev_err(dev, "%s: msi_addr_from_dt is null\n", __func__);
-
 				return -EINVAL;
 			}
-#else
-			dev_dbg(dev, "EP is Modem but ModemIF is disabled\n");
 #endif
 		} else {
 			dw_pcie_msi_init(pp);
-
-			if ((pp->msi_data >> 32) != 0)
-				dev_info(dev, "MSI memory is allocated over 32bit boundary\n");
-			dev_dbg(dev, "msi_data : %pad\n", &pp->msi_data);
 		}
 	}
 
@@ -2395,21 +2334,12 @@ program_msi_data:
 
 static void exynos_pcie_rc_send_pme_turn_off(struct exynos_pcie *exynos_pcie)
 {
-	struct dw_pcie *pci = exynos_pcie->pci;
-	struct device *dev = pci->dev;
 	int count = 0;
 	u32 val;
 
 	/* L1.2 enable check */
-	dev_dbg(dev, "Current PM state(PCS + 0x188) : 0x%x\n",
-		readl(exynos_pcie->phy_pcs_base + 0x188));
-	dev_dbg(dev, "DBI Link Control Register: 0x%x\n", readl(exynos_pcie->rc_dbi_base + 0x80));
-
 	val = exynos_elbi_read(exynos_pcie, PCIE_ELBI_RDLH_LINKUP) & PCIE_ELBI_LTSSM_STATE_MASK;
-	dev_dbg(dev, "%s: link state:%x\n", __func__, val);
 	if (!(val >= S_RCVRY_LOCK && val <= S_L1_IDLE)) {
-		dev_info(dev, "%s, pcie link is not up\n", __func__);
-
 		return;
 	}
 
@@ -2423,7 +2353,6 @@ static void exynos_pcie_rc_send_pme_turn_off(struct exynos_pcie *exynos_pcie)
 
 	while (count < MAX_L2_TIMEOUT) {
 		if ((exynos_elbi_read(exynos_pcie, PCIE_IRQ0) & IRQ_RADM_PM_TO_ACK)) {
-			dev_dbg(dev, "ack message is ok\n");
 			udelay(10);
 
 			break;
@@ -2432,8 +2361,6 @@ static void exynos_pcie_rc_send_pme_turn_off(struct exynos_pcie *exynos_pcie)
 		udelay(10);
 		count++;
 	}
-	if (count >= MAX_L2_TIMEOUT)
-		dev_err(dev, "cannot receive ack message from EP\n");
 
 	exynos_elbi_write(exynos_pcie, 0x0, XMIT_PME_TURNOFF);
 
@@ -2442,23 +2369,17 @@ static void exynos_pcie_rc_send_pme_turn_off(struct exynos_pcie *exynos_pcie)
 		val = exynos_elbi_read(exynos_pcie, PCIE_ELBI_RDLH_LINKUP)
 		      & PCIE_ELBI_LTSSM_STATE_MASK;
 		if (val == S_L2_IDLE) {
-			dev_dbg(dev, "received Enter_L23_READY DLLP packet\n");
-
 			break;
 		}
 		udelay(10);
 		count++;
 	} while (count < MAX_L2_TIMEOUT);
-
-	if (count >= MAX_L2_TIMEOUT)
-		dev_err(dev, "cannot receive L23_READY DLLP packet(0x%x)\n", val);
 }
 
 static int exynos_pcie_rc_establish_link(struct pcie_port *pp)
 {
 	struct dw_pcie *pci = to_dw_pcie_from_pp(pp);
 	struct exynos_pcie *exynos_pcie = to_exynos_pcie(pci);
-	struct device *dev = pci->dev;
 	u32 val, busdev;
 	int count = 0, try_cnt = 0;
 	unsigned int save_before_state = 0xff;
@@ -2491,8 +2412,6 @@ retry:
 		pll_lock = exynos_phy_read(exynos_pcie, 0x03F0) & (1 << 3);
 		cdr_lock = exynos_phy_read(exynos_pcie, 0x0FC0) & (1 << 4);
 		oc_done = exynos_phy_read(exynos_pcie, 0x0E18) & (1 << 7);
-		dev_err(dev, "OC Fail : PLL_LOCK : 0x%x, CDR_LOCK : 0x%x, OC : 0x%x\n",
-			pll_lock, cdr_lock, oc_done);
 	}
 
 	/* Soft Power RST */
@@ -2505,14 +2424,7 @@ retry:
 	exynos_elbi_write(exynos_pcie, val, PCIE_SOFT_RESET);
 
 	val = exynos_phy_read(exynos_pcie, 0x0E18) & (1 << 7);
-	if (!val) {
-		dev_err(dev, "OC Fail after soft power reset!\n");
-		dev_err(dev, "PMA Info : 0x760(0x%x), 0xE0C(0x%x), 0x3F0(0x%x), 0xFC0(0x%x)\n",
-			exynos_phy_read(exynos_pcie, 0x760),
-			exynos_phy_read(exynos_pcie, 0xE0C),
-			exynos_phy_read(exynos_pcie, 0x3F0),
-			exynos_phy_read(exynos_pcie, 0xFC0));
-	}
+
 	/* Device Type (Sub Controller: DEVICE_TYPE offset: 0x80  */
 	exynos_elbi_write(exynos_pcie, 0x04, 0x80);
 
@@ -2533,8 +2445,6 @@ retry:
 	/* set #PERST high */
 	gpio_set_value(exynos_pcie->perst_gpio, 1);
 
-	dev_dbg(dev, "%s: Set PERST to HIGH, gpio val = %d\n",
-		__func__, gpio_get_value(exynos_pcie->perst_gpio));
 	if (exynos_pcie->ep_device_type == EP_BCM_WIFI) {
 		usleep_range(20000, 22000);
 	} else {
@@ -2559,13 +2469,9 @@ retry:
 
 	/* NAK enable when AXI pending */
 	exynos_elbi_write(exynos_pcie, NACK_ENABLE, PCIE_MSTR_PEND_SEL_NAK);
-	dev_dbg(dev, "%s: NACK option enable: 0x%x\n", __func__,
-		exynos_elbi_read(exynos_pcie, PCIE_MSTR_PEND_SEL_NAK));
 
 	/* DBI L1 exit disable(use aux_clk in L1.2) */
 	exynos_elbi_write(exynos_pcie, DBI_L1_EXIT_DISABLE, PCIE_DBI_L1_EXIT_DISABLE);
-	dev_dbg(dev, "%s: DBI L1 exit disable option enable: 0x%x\n", __func__,
-		exynos_elbi_read(exynos_pcie, PCIE_DBI_L1_EXIT_DISABLE));
 
 	/* setup root complex */
 	dw_pcie_setup_rc(pp);
@@ -2573,10 +2479,6 @@ retry:
 
 	if (exynos_pcie->use_cache_coherency)
 		exynos_pcie_rc_set_iocc(pp, 1);
-
-	dev_dbg(dev, "D state: %x, LTSSM: %x\n",
-		exynos_elbi_read(exynos_pcie, PCIE_PM_DSTATE) & PCIE_PM_DSTATE_MASK,
-		exynos_elbi_read(exynos_pcie, PCIE_ELBI_RDLH_LINKUP) & PCIE_ELBI_LTSSM_STATE_MASK);
 
 	save_before_state = exynos_elbi_read(exynos_pcie, PCIE_ELBI_RDLH_LINKUP);
 	/* DBG: sleep_range(48000, 50000); */
@@ -2598,13 +2500,9 @@ retry:
 
 		val = exynos_elbi_read(exynos_pcie, PCIE_ELBI_RDLH_LINKUP)
 		      & PCIE_ELBI_LTSSM_STATE_MASK;
-		dev_err(dev, "Link is not up, try count: %d, linksts: %s(0x%x)\n",
-			try_cnt, LINK_STATE_DISP(val), val);
 
 		if (try_cnt < 10) {
 			gpio_set_value(exynos_pcie->perst_gpio, 0);
-			dev_dbg(dev, "%s: Set PERST to LOW, gpio val = %d\n", __func__,
-				gpio_get_value(exynos_pcie->perst_gpio));
 			/* LTSSM disable */
 			exynos_elbi_write(exynos_pcie, PCIE_ELBI_LTSSM_DISABLE,
 					  PCIE_APP_LTSSM_ENABLE);
@@ -2623,46 +2521,29 @@ retry:
 	} else {
 		val = exynos_elbi_read(exynos_pcie, PCIE_ELBI_RDLH_LINKUP)
 		      & PCIE_ELBI_LTSSM_STATE_MASK;
-		dev_dbg(dev, "%s(0x%x)\n", LINK_STATE_DISP(val), val);
-
-		dev_dbg(dev, "(phy+0xC08=0x%x)(phy+0x1408=0x%x)(phy+0xC6C=0x%x)(phy+0x146C=0x%x)\n",
-			exynos_phy_read(exynos_pcie, 0xC08),
-			exynos_phy_read(exynos_pcie, 0x1408),
-			exynos_phy_read(exynos_pcie, 0xC6C),
-			exynos_phy_read(exynos_pcie, 0x146C));
 
 		/* need delay for link speed change from GEN1 to Max(ex GEN3) */
 		usleep_range(2800, 3000); /* 3 ms - OK */
 
 		exynos_pcie_rc_rd_own_conf(pp, PCIE_LINK_CTRL_STAT, 4, &val);
 		val = (val >> 16) & 0xf;
-		dev_dbg(dev, "Current Link Speed is GEN%d (MAX GEN%d)\n",
-			val, exynos_pcie->max_link_speed);
 
 		/* check link training result(speed) */
 		if (exynos_pcie->ip_ver >= 0x982000 && val < exynos_pcie->max_link_speed) {
 			try_cnt++;
-			dev_err(dev, "%s: Link is up. But not max speed, try count: %d\n",
-				__func__, try_cnt);
 			if (try_cnt < 10) {
 				gpio_set_value(exynos_pcie->perst_gpio, 0);
-				dev_dbg(dev, "Set PERST LOW, gpio val = %d\n",
-					gpio_get_value(exynos_pcie->perst_gpio));
 				/* LTSSM disable */
 				exynos_elbi_write(exynos_pcie, PCIE_ELBI_LTSSM_DISABLE,
 						  PCIE_APP_LTSSM_ENABLE);
 				exynos_pcie_rc_phy_clock_enable(pp, PCIE_DISABLE_CLOCK);
 
 				goto retry;
-			} else {
-				dev_info(dev, "Current Link Speed is GEN%d (MAX GEN%d)\n",
-					val, exynos_pcie->max_link_speed);
 			}
 		}
 
 		/* check L0 state one more time after link recovery */
 		count = 0;
-		dev_dbg(dev, "check L0 state after link recovery\n");
 		while (count < MAX_TIMEOUT) {
 			val = exynos_elbi_read(exynos_pcie, PCIE_ELBI_RDLH_LINKUP)
 			      & PCIE_ELBI_LTSSM_STATE_MASK;
@@ -2969,12 +2850,9 @@ void exynos_pcie_rc_poweroff(int ch_num)
 void exynos_pcie_pm_suspend(int ch_num)
 {
 	struct exynos_pcie *exynos_pcie = &g_pcie_rc[ch_num];
-	struct dw_pcie *pci = exynos_pcie->pci;
 	unsigned long flags;
 
 	if (exynos_pcie->state == STATE_LINK_DOWN) {
-		dev_info(pci->dev, "RC%d already off\n", exynos_pcie->ch_num);
-
 		return;
 	}
 
@@ -3074,7 +2952,6 @@ static int exynos_pcie_rc_set_l1ss(int enable, struct pcie_port *pp, int id)
 {
 	struct dw_pcie *pci = to_dw_pcie_from_pp(pp);
 	struct exynos_pcie *exynos_pcie = to_exynos_pcie(pci);
-	struct device *dev = pci->dev;
 	u32 val;
 	unsigned long flags;
 	int domain_num;
@@ -3084,15 +2961,8 @@ static int exynos_pcie_rc_set_l1ss(int enable, struct pcie_port *pp, int id)
 	/* This function is only working with the devices which support L1SS */
 	if (exynos_pcie->ep_device_type != EP_SAMSUNG_MODEM &&
 	    exynos_pcie->ep_device_type != EP_BCM_WIFI) {
-		dev_err(dev, "Can't set L1SS!!! (EP: L1SS not supported)\n");
-
 		return -EINVAL;
 	}
-
-	dev_dbg(dev, "%s:L1SS_START: l1ss_ctrl_id_state = 0x%x\n",
-		__func__, exynos_pcie->l1ss_ctrl_id_state);
-	dev_dbg(dev, "%s:\tid = 0x%x, enable=%d, exynos_pcie=%pK\n",
-		__func__, id, enable, exynos_pcie);
 
 	if (exynos_pcie->state != STATE_LINK_UP || exynos_pcie->atu_ok == 0) {
 		spin_lock_irqsave(&exynos_pcie->conf_lock, flags);
@@ -3104,17 +2974,12 @@ static int exynos_pcie_rc_set_l1ss(int enable, struct pcie_port *pp, int id)
 
 		spin_unlock_irqrestore(&exynos_pcie->conf_lock, flags);
 
-		dev_dbg(dev, "%s:state = 0x%x, id = 0x%x: not needed(This will be set later)\n",
-			__func__, exynos_pcie->l1ss_ctrl_id_state, id);
-
 		return -1;
 	}
 
 	/* get the domain_num & ep_pci_bus of EP device */
 	domain_num = exynos_pcie->pci_dev->bus->domain_nr;
 	ep_pci_bus = pci_find_bus(domain_num, 1);
-	dev_dbg(dev, "%s:[DBG] domain_num = %d, ep_pci_bus = %pK\n",
-		__func__, domain_num, ep_pci_bus);
 
 	spin_lock_irqsave(&exynos_pcie->conf_lock, flags);
 	if (enable) {	/* enable == 1 */
@@ -3123,14 +2988,12 @@ static int exynos_pcie_rc_set_l1ss(int enable, struct pcie_port *pp, int id)
 		if (exynos_pcie->l1ss_ctrl_id_state == 0) {
 			/* [RC & EP] enable L1SS & ASPM */
 			if (exynos_pcie->ep_device_type == EP_SAMSUNG_MODEM) {
-				dev_dbg(dev, "%s: #1 enalbe CP L1.2\n", __func__);
 
 				/* 1) [RC] enable L1SS */
 				exynos_pcie_rc_rd_own_conf(pp, PCIE_LINK_L1SS_CONTROL, 4, &val);
 				/* Actual TCOMMON is 42usec (val = 0x2a << 8) */
 				val |= PORT_LINK_TCOMMON_32US
 					| PORT_LINK_L1SS_ENABLE;
-				dev_dbg(dev, "CPen:1RC:L1SS_CTRL(0x19C) = 0x%x\n", val);
 				exynos_pcie_rc_wr_own_conf(pp, PCIE_LINK_L1SS_CONTROL, 4, val);
 
 				/* [RC] set TPOWERON */
@@ -3176,7 +3039,6 @@ static int exynos_pcie_rc_set_l1ss(int enable, struct pcie_port *pp, int id)
 				val |= PORT_LINK_L1SS_ENABLE;
 				exynos_pcie_rc_wr_other_conf(pp, ep_pci_bus, 0,
 							     PCIE_LINK_L1SS_CONTROL, 4, val);
-				dev_dbg(dev, "CPen:2EP:L1SS_CTRL(0x19C)=0x%x\n", val);
 
 				/* 3) [RC] enable ASPM */
 				exynos_pcie_rc_rd_own_conf(pp, exp_cap_off +
@@ -3185,7 +3047,6 @@ static int exynos_pcie_rc_set_l1ss(int enable, struct pcie_port *pp, int id)
 				val |= PCI_EXP_LNKCTL_CCC | PCI_EXP_LNKCTL_ASPM_L1;
 				exynos_pcie_rc_wr_own_conf(pp, exp_cap_off +
 							   PCI_EXP_LNKCTL, 4, val);
-				dev_dbg(dev, "CPen:3RC:ASPM(0x70+16)=0x%x\n", val);
 
 				/* 4) [EP] enable ASPM */
 				exynos_pcie_rc_rd_other_conf(pp, ep_pci_bus, 0,
@@ -3194,9 +3055,7 @@ static int exynos_pcie_rc_set_l1ss(int enable, struct pcie_port *pp, int id)
 					PCI_EXP_LNKCTL_ASPM_L1;
 				exynos_pcie_rc_wr_other_conf(pp, ep_pci_bus, 0,
 							     PCIE_LINK_CTRL_STAT, 4, val);
-				dev_dbg(dev, "CPen:4EP:ASPM(0x80)=0x%x\n", val);
 			} else if (exynos_pcie->ep_device_type == EP_BCM_WIFI) {
-				dev_dbg(dev, "%s: #2 enable WIFI L1.2\n", __func__);
 
 				/* enable sequence:
 				 * 1. PCIPM RC
@@ -3229,7 +3088,6 @@ static int exynos_pcie_rc_set_l1ss(int enable, struct pcie_port *pp, int id)
 				val |= PORT_LINK_L12_LTR_THRESHOLD | PORT_LINK_TCOMMON_32US |
 				       PORT_LINK_L1SS_ENABLE;
 				exynos_pcie_rc_wr_own_conf(pp, PCIE_LINK_L1SS_CONTROL, 4, val);
-				dev_dbg(dev, "WIFIen:1RC:L1SS_CTRL(0x19C)=0x%x\n", val);
 
 				/* 2. to enable PCIPM EP */
 				/* [EP:set value] TPowerOn(130 usec) */
@@ -3260,7 +3118,6 @@ static int exynos_pcie_rc_set_l1ss(int enable, struct pcie_port *pp, int id)
 				       WIFI_ALL_PM_ENABEL;
 				exynos_pcie_rc_wr_other_conf(pp, ep_pci_bus, 0, WIFI_L1SS_CONTROL,
 							     4, val);
-				dev_dbg(dev, "WIFIen:2EP:L1SS_CTRL(0x248)=0x%x\n", val);
 
 				/* 3. to enable ASPM RC */
 				exynos_pcie_rc_rd_own_conf(pp, exp_cap_off + PCI_EXP_LNKCTL,
@@ -3270,7 +3127,6 @@ static int exynos_pcie_rc_set_l1ss(int enable, struct pcie_port *pp, int id)
 				val |= PCI_EXP_LNKCTL_CCC | PCI_EXP_LNKCTL_ASPM_L1;
 				exynos_pcie_rc_wr_own_conf(pp, exp_cap_off + PCI_EXP_LNKCTL,
 							   4, val);
-				dev_dbg(dev, "WIFIen:3RC:ASPM(0x70+16)=0x%x\n", val);
 
 				/* 4. to enable ASPM EP */
 				exynos_pcie_rc_rd_other_conf(pp, ep_pci_bus, 0, WIFI_L1SS_LINKCTRL,
@@ -3280,9 +3136,6 @@ static int exynos_pcie_rc_set_l1ss(int enable, struct pcie_port *pp, int id)
 				       WIFI_ASPM_L1_ENTRY_EN;
 				exynos_pcie_rc_wr_other_conf(pp, ep_pci_bus, 0, WIFI_L1SS_LINKCTRL,
 							     4, val);
-				dev_dbg(dev, "WIFIen:4EP:ASPM(0xBC)=0x%x\n", val);
-			} else {
-				dev_err(dev, "[ERR] EP: L1SS not supported\n");
 			}
 		}
 	} else {	/* enable == 0 */
@@ -3292,23 +3145,18 @@ static int exynos_pcie_rc_set_l1ss(int enable, struct pcie_port *pp, int id)
 			exynos_pcie->l1ss_ctrl_id_state |= id;
 
 			if (exynos_pcie->ep_device_type == EP_SAMSUNG_MODEM) {
-				dev_dbg(dev, "%s: #3 disable CP L1.2\n", __func__);
-
 				/* 1) [EP] disable ASPM */
 				exynos_pcie_rc_rd_other_conf(pp, ep_pci_bus, 0,
 							     PCIE_LINK_CTRL_STAT, 4, &val);
 				val &= ~(PCI_EXP_LNKCTL_ASPMC);
 				exynos_pcie_rc_wr_other_conf(pp, ep_pci_bus, 0,
 							     PCIE_LINK_CTRL_STAT, 4, val);
-				dev_dbg(dev, "CPdis:1EP:ASPM(0x80)=0x%x\n", val);
-
 				/* 2) [RC] disable ASPM */
 				exynos_pcie_rc_rd_own_conf(pp, exp_cap_off +
 							   PCI_EXP_LNKCTL, 4, &val);
 				val &= ~PCI_EXP_LNKCTL_ASPMC;
 				exynos_pcie_rc_wr_own_conf(pp, exp_cap_off +
 							   PCI_EXP_LNKCTL, 4, val);
-				dev_dbg(dev, "CPdis:2RC:ASPM(0x70+16)=0x%x\n", val);
 
 				/* 3) [EP] disable L1SS */
 				exynos_pcie_rc_rd_other_conf(pp, ep_pci_bus, 0,
@@ -3316,15 +3164,12 @@ static int exynos_pcie_rc_set_l1ss(int enable, struct pcie_port *pp, int id)
 				val &= ~(PORT_LINK_L1SS_ENABLE);
 				exynos_pcie_rc_wr_other_conf(pp, ep_pci_bus, 0,
 							     PCIE_LINK_L1SS_CONTROL, 4, val);
-				dev_dbg(dev, "CPdis:3EP:L1SS_CTRL(0x19C)=0x%x\n", val);
 
 				/* 4) [RC] disable L1SS */
 				exynos_pcie_rc_rd_own_conf(pp, PCIE_LINK_L1SS_CONTROL, 4, &val);
 				val &= ~(PORT_LINK_L1SS_ENABLE);
 				exynos_pcie_rc_wr_own_conf(pp, PCIE_LINK_L1SS_CONTROL, 4, val);
-				dev_dbg(dev, "CPdis:4RC:L1SS_CTRL(0x19C)=0x%x\n", val);
 			} else if (exynos_pcie->ep_device_type == EP_BCM_WIFI) {
-				dev_dbg(dev, "%s: #4 disable WIFI L1.2\n", __func__);
 
 				/* disable sequence:
 				 * 1. ASPM EP
@@ -3339,7 +3184,6 @@ static int exynos_pcie_rc_set_l1ss(int enable, struct pcie_port *pp, int id)
 				/* val |= WIFI_CLK_REQ_EN | WIFI_USE_SAME_REF_CLK; */
 				exynos_pcie_rc_wr_other_conf(pp, ep_pci_bus, 0, WIFI_L1SS_LINKCTRL,
 							     4, val);
-				dev_dbg(pci->dev, "WIFIdis:1EP:ASPM(0xBC)=0x%x\n", val);
 
 				/* 2) [RC] disable ASPM */
 				exynos_pcie_rc_rd_own_conf(pp, exp_cap_off + PCI_EXP_LNKCTL,
@@ -3347,7 +3191,6 @@ static int exynos_pcie_rc_set_l1ss(int enable, struct pcie_port *pp, int id)
 				val &= ~PCI_EXP_LNKCTL_ASPMC;
 				exynos_pcie_rc_wr_own_conf(pp, exp_cap_off + PCI_EXP_LNKCTL,
 							   4, val);
-				dev_dbg(pci->dev, "WIFIdis:2RC:ASPM(0x70+16)=0x%x\n", val);
 
 				/* 3) [EP] disable L1SS */
 				exynos_pcie_rc_rd_other_conf(pp, ep_pci_bus, 0, WIFI_L1SS_CONTROL,
@@ -3355,23 +3198,16 @@ static int exynos_pcie_rc_set_l1ss(int enable, struct pcie_port *pp, int id)
 				val &= ~(WIFI_ALL_PM_ENABEL);
 				exynos_pcie_rc_wr_other_conf(pp, ep_pci_bus, 0, WIFI_L1SS_CONTROL,
 							     4, val);
-				dev_dbg(pci->dev, "WIFIdis:3EP:L1SS_CTRL(0x248)=0x%x\n", val);
 
 				/* 4) [RC] disable L1SS */
 				exynos_pcie_rc_rd_own_conf(pp, PCIE_LINK_L1SS_CONTROL, 4, &val);
 				val &= ~(PORT_LINK_L1SS_ENABLE);
 				exynos_pcie_rc_wr_own_conf(pp, PCIE_LINK_L1SS_CONTROL, 4, val);
-				dev_dbg(pci->dev, "WIFIdis:4RC:L1SS_CTRL(0x19C)=0x%x\n", val);
-			} else {
-				dev_err(dev, "[ERR] EP: L1SS not supported\n");
 			}
 		}
 	}
 
 	spin_unlock_irqrestore(&exynos_pcie->conf_lock, flags);
-
-	dev_dbg(dev, "%s:L1SS_END(l1ss_ctrl_id_state=0x%x, id=0x%x, enable=%d)\n",
-		__func__, exynos_pcie->l1ss_ctrl_id_state, id, enable);
 
 	return 0;
 }
@@ -3744,11 +3580,8 @@ static int exynos_pcie_msi_set_affinity(struct irq_data *irq_data, const struct 
 int exynos_pcie_rc_itmon_notifier(struct notifier_block *nb, unsigned long action, void *nb_data)
 {
 	struct exynos_pcie *exynos_pcie = container_of(nb, struct exynos_pcie, itmon_nb);
-	struct device *dev = exynos_pcie->pci->dev;
 	struct itmon_notifier *itmon_info = nb_data;
 	unsigned int val;
-
-	dev_info(dev, "### EXYNOS PCIE ITMON ###\n");
 
 	if (IS_ERR_OR_NULL(itmon_info))
 		return NOTIFY_DONE;
@@ -3761,7 +3594,6 @@ int exynos_pcie_rc_itmon_notifier(struct notifier_block *nb, unsigned long actio
 		if ((itmon_info->port && !strcmp(itmon_info->port, "HSI2")) ||
 		    (itmon_info->dest && !strcmp(itmon_info->dest, "HSI2"))) {
 			regmap_read(exynos_pcie->pmureg, exynos_pcie->pmu_offset, &val);
-			dev_info(dev, "### PMU PHY Isolation : 0x%x\n", val);
 
 			exynos_pcie_rc_register_dump(exynos_pcie->ch_num);
 		}
@@ -3769,12 +3601,9 @@ int exynos_pcie_rc_itmon_notifier(struct notifier_block *nb, unsigned long actio
 		if ((itmon_info->port && !strcmp(itmon_info->port, "HSI2")) ||
 		    (itmon_info->dest && !strcmp(itmon_info->dest, "HSI2"))) {
 			regmap_read(exynos_pcie->pmureg, exynos_pcie->pmu_offset, &val);
-			dev_info(dev, "### PMU PHY Isolation : 0x%x\n", val);
 
 			exynos_pcie_rc_register_dump(exynos_pcie->ch_num);
 		}
-	} else {
-		dev_info(dev, "skip register dump(ip_ver = 0x%x)\n", exynos_pcie->ip_ver);
 	}
 
 	return NOTIFY_DONE;
@@ -3823,9 +3652,6 @@ static void exynos_pcie_rc_pcie_ops_init(struct pcie_port *pp)
 	struct dw_pcie *pci = to_dw_pcie_from_pp(pp);
 	struct exynos_pcie *exynos_pcie = to_exynos_pcie(pci);
 	struct exynos_pcie_ops *pcie_ops = &exynos_pcie->exynos_pcie_ops;
-	struct device *dev = pci->dev;
-
-	dev_info(dev, "Initialize PCIe function.\n");
 
 	pcie_ops->poweron = exynos_pcie_rc_poweron;
 	pcie_ops->poweroff = exynos_pcie_rc_poweroff;

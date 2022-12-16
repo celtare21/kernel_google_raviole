@@ -2351,13 +2351,8 @@ static irqreturn_t exynos_pcie_rc_irq_handler(int irq, void *arg)
 
 	/* only support after EXYNOS9820 EVT 1.1 */
 	if (val_irq1 & IRQ_LINK_DOWN_ASSERT) {
-		dev_info(dev, "! PCIE LINK DOWN-irq1_state: 0x%x !\n", val_irq1);
-		dev_info(dev, "(irq0 = 0x%x, irq1 = 0x%x, irq2 = 0x%x)\n",
-			 val_irq0, val_irq1, val_irq2);
 
-		if (exynos_pcie->cpl_timeout_recovery) {
-			dev_err(dev, "already in cpl recovery\n");
-		} else {
+		if (!exynos_pcie->cpl_timeout_recovery) {
 			exynos_pcie->sudden_linkdown = 1;
 			exynos_pcie->state = STATE_LINK_DOWN_TRY;
 			queue_work(exynos_pcie->pcie_wq, &exynos_pcie->dislink_work.work);
@@ -2365,19 +2360,10 @@ static irqreturn_t exynos_pcie_rc_irq_handler(int irq, void *arg)
 	}
 
 	if (val_irq2 & IRQ_RADM_CPL_TIMEOUT_ASSERT) {
-		dev_info(dev, "!! PCIE_CPL_TIMEOUT-irq2_state: 0x%x !!\n", val_irq2);
-		dev_info(dev, "(irq0 = 0x%x, irq1 = 0x%x, irq2 = 0x%x)\n",
-				val_irq0, val_irq1, val_irq2);
-
 		val_irq2 = exynos_elbi_read(exynos_pcie, PCIE_IRQ2);
-		dev_info(dev, "check irq22 pending clear: irq2_state = 0x%x\n", val_irq2);
 
-		if (exynos_pcie->sudden_linkdown) {
-			dev_err(dev, "in linkdown recovery\n");
-		} else {
-			if (exynos_pcie->cpl_timeout_recovery) {
-				dev_err(dev, "in cpl recovery\n");
-			} else {
+		if (!exynos_pcie->sudden_linkdown) {
+			if (!exynos_pcie->cpl_timeout_recovery) {
 				exynos_pcie->cpl_timeout_recovery = 1;
 				exynos_pcie->state = STATE_LINK_DOWN_TRY;
 				queue_work(exynos_pcie->pcie_wq,
@@ -2389,7 +2375,6 @@ static irqreturn_t exynos_pcie_rc_irq_handler(int irq, void *arg)
 #if IS_ENABLED(CONFIG_PCI_MSI)
 	if (val_irq2 & IRQ_MSI_RISING_ASSERT && exynos_pcie->use_msi) {
 		if (exynos_pcie->separated_msi && exynos_pcie->use_pcieon_sleep) {
-			dev_info(dev, "MSI: separated msi & pcieonsleep\n");
 			return IRQ_HANDLED;
 		}
 
@@ -3367,17 +3352,12 @@ static int exynos_pcie_rc_set_l1ss(int enable, struct pcie_port *pp, int id)
 				val |= WIFI_QC_L12_LTR_THRESHOLD | PORT_LINK_TCOMMON_32US |
 				       PORT_LINK_L1SS_ENABLE;
 				exynos_pcie_rc_wr_own_conf(pp, PCIE_LINK_L1SS_CONTROL, 4, val);
-				dev_dbg(dev, "%s: WIFIen:1RC:L1SS_CTRL(0x19C)=0x%x\n",
-						__func__, val);
 
 				/* 2. to enable PCIPM EP */
 				/* [EP:set value] TPowerOn(10 usec) */
 				exynos_pcie_rc_wr_other_conf(pp, ep_pci_bus, 0,
 						exynos_pcie->ep_l1ss_ctrl2_off,
 						4, PORT_LINK_TPOWERON_10US);
-				dev_dbg(dev, "%s: WIFIen:2EP:L1SS_CTRL2(0x%x)=0x%x\n",
-						__func__, exynos_pcie->ep_l1ss_ctrl2_off,
-						PORT_LINK_TPOWERON_10US);
 
 				/* [EP:set enable bit] LTR Mechanism Enable */
 				exynos_pcie_rc_rd_other_conf(pp, ep_pci_bus, 0,
@@ -3385,8 +3365,6 @@ static int exynos_pcie_rc_set_l1ss(int enable, struct pcie_port *pp, int id)
 				val |= PCI_EXP_DEVCTL2_LTR_EN;
 				exynos_pcie_rc_wr_other_conf(pp, ep_pci_bus, 0,
 							     exp_cap_off+PCI_EXP_DEVCTL2, 4, val);
-				dev_dbg(dev, "%s: WIFIen:2EP:EXP_DEVCTL2(0x%x)=0x%x\n",
-						__func__, exp_cap_off+PCI_EXP_DEVCTL2, val);
 
 				/* [EP:set values] LTR_L1.2_Threshold(150 us) and TCommon(0 us)
 				 * [EP:enable] WIFI_PM_ENALKBE(0xf)
@@ -3396,8 +3374,6 @@ static int exynos_pcie_rc_set_l1ss(int enable, struct pcie_port *pp, int id)
 				val |= WIFI_QC_L12_LTR_THRESHOLD | PORT_LINK_L1SS_ENABLE;
 				exynos_pcie_rc_wr_other_conf(pp, ep_pci_bus, 0,
 						exynos_pcie->ep_l1ss_ctrl1_off, 4, val);
-				dev_dbg(dev, "%s: WIFIen:2EP:L1SS_CTRL(0x%x)=0x%x\n",
-						__func__, exynos_pcie->ep_l1ss_ctrl1_off, val);
 
 				/* 3. to enable ASPM RC */
 				exynos_pcie_rc_rd_own_conf(pp, exp_cap_off + PCI_EXP_LNKCTL,
@@ -3407,8 +3383,6 @@ static int exynos_pcie_rc_set_l1ss(int enable, struct pcie_port *pp, int id)
 				val |= PCI_EXP_LNKCTL_CCC | PCI_EXP_LNKCTL_ASPM_L1;
 				exynos_pcie_rc_wr_own_conf(pp, exp_cap_off + PCI_EXP_LNKCTL,
 							   4, val);
-				dev_dbg(dev, "%s: WIFIen:3RC:ASPM(0x70+16)=0x%x\n", __func__, val);
-
 				/* 4. to enable ASPM EP */
 				exynos_pcie_rc_rd_other_conf(pp, ep_pci_bus, 0,
 						exp_cap_off+PCI_EXP_LNKCTL, 4, &val);
@@ -3416,10 +3390,6 @@ static int exynos_pcie_rc_set_l1ss(int enable, struct pcie_port *pp, int id)
 					PCI_EXP_LNKCTL_ASPM_L1;
 				exynos_pcie_rc_wr_other_conf(pp, ep_pci_bus, 0,
 						exp_cap_off+PCI_EXP_LNKCTL, 4, val);
-				dev_dbg(dev, "%s: WIFIen:4EP:ASPM(0x%x)=0x%x\n",
-						__func__,exp_cap_off+PCI_EXP_LNKCTL, val);
-			} else {
-				dev_err(dev, "[ERR] EP: L1SS not supported\n");
 			}
 		}
 	} else {	/* enable == 0 */
@@ -3501,8 +3471,6 @@ static int exynos_pcie_rc_set_l1ss(int enable, struct pcie_port *pp, int id)
 				/* val |= WIFI_CLK_REQ_EN | WIFI_USE_SAME_REF_CLK; */
 				exynos_pcie_rc_wr_other_conf(pp, ep_pci_bus, 0,
 						exp_cap_off+PCI_EXP_LNKCTL, 4, val);
-				dev_dbg(pci->dev, "%s: WIFIdis:1EP:ASPM(0x%x)=0x%x\n",
-						__func__,exp_cap_off+PCI_EXP_LNKCTL,val);
 
 				/* 2) [RC] disable ASPM */
 				exynos_pcie_rc_rd_own_conf(pp, exp_cap_off + PCI_EXP_LNKCTL,
@@ -3510,8 +3478,6 @@ static int exynos_pcie_rc_set_l1ss(int enable, struct pcie_port *pp, int id)
 				val &= ~PCI_EXP_LNKCTL_ASPMC;
 				exynos_pcie_rc_wr_own_conf(pp, exp_cap_off + PCI_EXP_LNKCTL,
 							   4, val);
-				dev_dbg(pci->dev, "%s: WIFIdis:2RC:ASPM(0x70+16)=0x%x\n",
-						__func__, val);
 
 				/* 3) [EP] disable L1SS */
 				exynos_pcie_rc_rd_other_conf(pp, ep_pci_bus, 0,
@@ -3519,17 +3485,11 @@ static int exynos_pcie_rc_set_l1ss(int enable, struct pcie_port *pp, int id)
 				val &= ~(PORT_LINK_L1SS_ENABLE);
 				exynos_pcie_rc_wr_other_conf(pp, ep_pci_bus, 0,
 						exynos_pcie->ep_l1ss_ctrl1_off, 4, val);
-				dev_dbg(pci->dev, "%s: WIFIdis:3EP:L1SS_CTRL(0x%x)=0x%x\n",
-						__func__, exynos_pcie->ep_l1ss_ctrl1_off,val);
 
 				/* 4) [RC] disable L1SS */
 				exynos_pcie_rc_rd_own_conf(pp, PCIE_LINK_L1SS_CONTROL, 4, &val);
 				val &= ~(PORT_LINK_L1SS_ENABLE);
 				exynos_pcie_rc_wr_own_conf(pp, PCIE_LINK_L1SS_CONTROL, 4, val);
-				dev_dbg(pci->dev, "%s: WIFIdis:4RC:L1SS_CTRL(0x19C)=0x%x\n",
-						__func__, val);
-			} else {
-				dev_err(dev, "[ERR] EP: L1SS not supported\n");
 			}
 		}
 	}

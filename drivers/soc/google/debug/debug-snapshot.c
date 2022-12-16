@@ -319,7 +319,7 @@ void dbg_snapshot_output(void)
 	for (i = 0; i < ARRAY_SIZE(dss_items); i++) {
 		if (!dss_items[i].entry.enabled)
 			continue;
-		pr_info("%-16s: phys:%pa / virt:%pK / size:0x%zx / en:%d\n",
+		pr_info("%-16s: phys:0x%pa / virt:0x%pK / size:0x%zx / en:%d\n",
 				dss_items[i].name,
 				&dss_items[i].entry.paddr,
 				(void *) dss_items[i].entry.vaddr,
@@ -389,9 +389,12 @@ static void dbg_snapshot_fixmap(void)
 		}
 	}
 
-	dss_log = (struct dbg_snapshot_log *)(dss_items[DSS_ITEM_KEVENTS_ID].entry.vaddr);
-	dss_itmon = (struct itmon_logs *)(dss_items[DSS_ITEM_ITMON_ID].entry.vaddr);
-	dss_itmon->magic = DSS_ITMON_MAGIC_INITIALIZED;
+	if (dss_items[DSS_ITEM_KEVENTS_ID].entry.enabled)
+		dss_log = (struct dbg_snapshot_log *)(dss_items[DSS_ITEM_KEVENTS_ID].entry.vaddr);
+	if (dss_items[DSS_ITEM_ITMON_ID].entry.enabled) {
+		dss_itmon = (struct itmon_logs *)(dss_items[DSS_ITEM_ITMON_ID].entry.vaddr);
+		dss_itmon->magic = DSS_ITMON_MAGIC_INITIALIZED;
+	}
 
 	/*  set fake translation to virtual address to debug trace */
 	dss_info.info_event = dss_log;
@@ -602,6 +605,7 @@ static int dbg_snapshot_probe(struct platform_device *pdev)
 	dbg_snapshot_set_slcdump_status();
 
 	dbg_snapshot_set_enable(true);
+	dbg_snapshot_start_log();
 
 	if (sysfs_create_groups(&pdev->dev.kobj, dss_sysfs_groups))
 		dev_err(dss_desc.dev, "fail to register debug-snapshot sysfs\n");

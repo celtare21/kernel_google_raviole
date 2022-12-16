@@ -217,7 +217,7 @@ void dbg_snapshot_log_output(void)
 	pr_info("debug-snapshot-log physical / virtual memory layout:\n");
 	for (i = 0; i < ARRAY_SIZE(dss_log_items); i++) {
 		if (dss_log_items[i].entry.enabled)
-			pr_info("%-12s: phys:%pa / virt:%pK / size:0x%zx / en:%d\n",
+			pr_info("%-12s: phys:0x%pa / virt:0x%pK / size:0x%zx / en:%d\n",
 				dss_log_items[i].name,
 				&dss_log_items[i].entry.paddr,
 				(void *) dss_log_items[i].entry.vaddr,
@@ -647,12 +647,16 @@ static void dbg_snapshot_print_irq(void)
 	pr_info("----------------------------------------------------------\n");
 
 	for_each_irq_nr(i) {
-		struct irq_desc *desc = irq_to_desc(i);
+		struct irq_data *data;
+		struct irq_desc *desc;
 		unsigned int irq_stat = 0;
 		const char *name;
 
-		if (!desc)
+		data = irq_get_irq_data(i);
+		if (!data)
 			continue;
+
+		desc = irq_data_to_desc(data);
 
 		for_each_possible_cpu(cpu)
 			irq_stat += *per_cpu_ptr(desc->kstat_irqs, cpu);
@@ -687,10 +691,6 @@ void dbg_snapshot_init_log(void)
 {
 	struct dbg_snapshot_item *item = &dss_items[DSS_ITEM_KEVENTS_ID];
 	struct dbg_snapshot_log_item *log_item;
-	struct device_node *np = dss_desc.dev->of_node;
-	struct property *prop;
-	const char *str;
-	unsigned int i = 0;
 
 	log_item_set_filed(TASK, task);
 	log_item_set_filed(WORK, work);
@@ -706,6 +706,15 @@ void dbg_snapshot_init_log(void)
 	log_item_set_filed(THERMAL, thermal);
 	log_item_set_filed(ACPM, acpm);
 	log_item_set_filed(PRINTK, print);
+}
+
+void dbg_snapshot_start_log(void)
+{
+	struct property *prop;
+	const char *str;
+	unsigned int i = 0;
+
+	struct device_node *np = dss_desc.dev->of_node;
 
 	if (dbg_snapshot_is_log_item_enabled(DSS_LOG_SUSPEND_ID)) {
 		register_trace_suspend_resume(dbg_snapshot_suspend_resume, NULL);

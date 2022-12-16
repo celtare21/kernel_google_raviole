@@ -673,7 +673,9 @@ int xhci_exynos_wake_lock(struct xhci_hcd_exynos *xhci_exynos,
 				   int is_main_hcd, int is_lock)
 {
 	struct usb_hcd	*hcd = xhci_exynos->hcd;
+#if IS_ENABLED(CONFIG_EXYNOS_CPUPM)
 	int idle_ip_index;
+#endif
 	struct xhci_hcd *xhci = hcd_to_xhci(hcd);
 
 	dev_dbg(xhci_exynos->dev, "%s\n", __func__);
@@ -698,8 +700,10 @@ int xhci_exynos_wake_lock(struct xhci_hcd_exynos *xhci_exynos,
 		}
 		/* Add a routine for disable IDLEIP (IP idle) */
 		dev_info(xhci_exynos->dev, "IDLEIP(SICD) disable.\n");
+#if IS_ENABLED(CONFIG_EXYNOS_CPUPM)
 		idle_ip_index = dwc3_otg_get_idle_ip_index();
 		exynos_update_ip_idle_status(idle_ip_index, 0);
+#endif
 	} else {
 		if (xhci_exynos->ap_suspend_enabled) {
 			dev_info(xhci_exynos->dev, "%s: audio device, skip WAKE UNLOCK\n",
@@ -716,8 +720,10 @@ int xhci_exynos_wake_lock(struct xhci_hcd_exynos *xhci_exynos,
 		}
 		dev_info(xhci_exynos->dev, "IDLEIP(SICD) enable.\n");
 		/* Add a routine for enable IDLEIP (IP idle) */
+#if IS_ENABLED(CONFIG_EXYNOS_CPUPM)
 		idle_ip_index = dwc3_otg_get_idle_ip_index();
 		exynos_update_ip_idle_status(idle_ip_index, 1);
+#endif
 	}
 
 	return 0;

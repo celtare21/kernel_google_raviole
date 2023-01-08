@@ -2048,7 +2048,6 @@ void exynos_pcie_rc_cpl_timeout_work(struct work_struct *work)
 		container_of(work, struct exynos_pcie, cpl_timeout_work.work);
 	struct dw_pcie *pci = exynos_pcie->pci;
 	struct pcie_port *pp = &pci->pp;
-	struct device *dev = pci->dev;
 
 	if (exynos_pcie->state == STATE_LINK_DOWN)
 		return;
@@ -3522,7 +3521,6 @@ EXPORT_SYMBOL_GPL(exynos_pcie_rc_l1ss_ctrl);
 int exynos_pcie_poweron(int ch_num, int spd)
 {
 	struct exynos_pcie *exynos_pcie = &g_pcie_rc[ch_num];
-	struct dw_pcie *pci = exynos_pcie->pci;
 
 	dev_dbg(pci->dev, "%s requested with link speed GEN%d\n", __func__, spd);
 	exynos_pcie->max_link_speed = spd;

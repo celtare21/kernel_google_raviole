@@ -156,10 +156,6 @@ static int set_ras_addr(struct sk_buff *skb, struct nf_conn *ct,
 		if (get_h225_addr(ct, *data, &taddr[i], &addr, &port) &&
 		    addr.ip == ct->tuplehash[dir].tuple.src.u3.ip &&
 		    port == ct->tuplehash[dir].tuple.src.u.udp.port) {
-			pr_debug("nf_nat_ras: set rasAddress %pI4:%hu->%pI4:%hu\n",
-				 &addr.ip, ntohs(port),
-				 &ct->tuplehash[!dir].tuple.dst.u3.ip,
-				 ntohs(ct->tuplehash[!dir].tuple.dst.u.udp.port));
 			return set_h225_addr(skb, protoff, data, 0, &taddr[i],
 					     &ct->tuplehash[!dir].tuple.dst.u3,
 					     ct->tuplehash[!dir].tuple.
@@ -261,18 +257,6 @@ static int nat_rtp_rtcp(struct sk_buff *skb, struct nf_conn *ct,
 	info->rtp_port[i][dir] = rtp_port;
 	info->rtp_port[i][!dir] = htons(nated_port);
 
-	/* Success */
-	pr_debug("nf_nat_h323: expect RTP %pI4:%hu->%pI4:%hu\n",
-		 &rtp_exp->tuple.src.u3.ip,
-		 ntohs(rtp_exp->tuple.src.u.udp.port),
-		 &rtp_exp->tuple.dst.u3.ip,
-		 ntohs(rtp_exp->tuple.dst.u.udp.port));
-	pr_debug("nf_nat_h323: expect RTCP %pI4:%hu->%pI4:%hu\n",
-		 &rtcp_exp->tuple.src.u3.ip,
-		 ntohs(rtcp_exp->tuple.src.u.udp.port),
-		 &rtcp_exp->tuple.dst.u3.ip,
-		 ntohs(rtcp_exp->tuple.dst.u.udp.port));
-
 	return 0;
 }
 
@@ -317,12 +301,6 @@ static int nat_t120(struct sk_buff *skb, struct nf_conn *ct,
 		nf_ct_unexpect_related(exp);
 		return -1;
 	}
-
-	pr_debug("nf_nat_h323: expect T.120 %pI4:%hu->%pI4:%hu\n",
-		 &exp->tuple.src.u3.ip,
-		 ntohs(exp->tuple.src.u.tcp.port),
-		 &exp->tuple.dst.u3.ip,
-		 ntohs(exp->tuple.dst.u.tcp.port));
 
 	return 0;
 }
@@ -377,12 +355,6 @@ static int nat_h245(struct sk_buff *skb, struct nf_conn *ct,
 	/* Save ports */
 	info->sig_port[dir] = port;
 	info->sig_port[!dir] = htons(nated_port);
-
-	pr_debug("nf_nat_q931: expect H.245 %pI4:%hu->%pI4:%hu\n",
-		 &exp->tuple.src.u3.ip,
-		 ntohs(exp->tuple.src.u.tcp.port),
-		 &exp->tuple.dst.u3.ip,
-		 ntohs(exp->tuple.dst.u.tcp.port));
 
 	return 0;
 }
@@ -482,13 +454,6 @@ static int nat_q931(struct sk_buff *skb, struct nf_conn *ct,
 		}
 	}
 
-	/* Success */
-	pr_debug("nf_nat_ras: expect Q.931 %pI4:%hu->%pI4:%hu\n",
-		 &exp->tuple.src.u3.ip,
-		 ntohs(exp->tuple.src.u.tcp.port),
-		 &exp->tuple.dst.u3.ip,
-		 ntohs(exp->tuple.dst.u.tcp.port));
-
 	return 0;
 }
 
@@ -558,13 +523,6 @@ static int nat_callforwarding(struct sk_buff *skb, struct nf_conn *ct,
 		nf_ct_unexpect_related(exp);
 		return -1;
 	}
-
-	/* Success */
-	pr_debug("nf_nat_q931: expect Call Forwarding %pI4:%hu->%pI4:%hu\n",
-		 &exp->tuple.src.u3.ip,
-		 ntohs(exp->tuple.src.u.tcp.port),
-		 &exp->tuple.dst.u3.ip,
-		 ntohs(exp->tuple.dst.u.tcp.port));
 
 	return 0;
 }
